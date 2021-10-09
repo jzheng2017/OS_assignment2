@@ -23,25 +23,34 @@ class synchronized_vector
 {
   vector<T> buffer;
   int readers = 0; //numer of readers
- 
-  mutex m_no_readers; //mutex for mutual exclusion of readers variable
-  mutex m_readers; //mutex for determining if readers can continue to write
-  mutex m_queue; //mutex for determining if a writer is writing or wants to write
+
+  mutex m_no_readers;    //mutex for mutual exclusion of readers variable
+  mutex m_readers;       //mutex for determining if readers can continue to write
+  mutex m_worker_queue; //mutex for determining if there is a request for modification like writing or removing
 
 public:
   void write(T item)
   {
-    m_queue.lock(); // signal that a writer wants to write
-    m_readers.lock();  //wait till all readers are done reading
+    m_worker_queue.lock(); // signal that a writer wants to write
+    m_readers.lock();       //wait till all readers are done reading
     buffer.push_back(item);
     m_readers.unlock(); //signal that the writer is done writing so that readers can start reading or another writer is allowed to write
-    m_queue.unlock(); 
+    m_worker_queue.unlock();
+  }
+
+  void remove(int index)
+  {
+    m_worker_queue.lock(); //signal that there is a request for removal
+    m_readers.lock(); //wait till all readers are done reading
+    buffer.erase(buffer.begin() + index);
+    m_readers.unlock();
+    m_worker_queue.unlock();
   }
 
   T read(int index)
   {
-    m_queue.lock(); //check whether there are writers busy or if a writer wants to start writing, if not just release the lock again
-    m_queue.unlock();
+    m_worker_queue.lock(); //check whether there are modifications are taking place or is being requested, if not just release the lock again
+    m_worker_queue.unlock();
 
     m_no_readers.lock();
     if (readers == 0)
@@ -62,7 +71,7 @@ public:
     }
 
     m_no_readers.unlock();
-   
+
     return value;
   }
 
@@ -89,15 +98,12 @@ int main(int argc, char *argv[])
 {
   thread t1 = thread(writeToLogger, "first thread");
   thread t2 = thread(writeToLogger, "second thread");
-
   t1.join();
   t2.join();
 
-  // cout << logger.size();
   ofstream myfile;
   myfile.open("example.txt", std::ios_base::app);
-  // myfile << "Writing this to a file.\n";
-
+  
   for (int i = 0; i < 20; i++)
     myfile << logger.read(i) << "\n";
 
