@@ -24,15 +24,31 @@ class synchronized_vector
   vector<T> buffer;
   int readers = 0; //numer of readers
 
-  mutex m_no_readers;    //mutex for mutual exclusion of readers variable
-  mutex m_readers;       //mutex for determining if readers can continue to write
+  mutex m_no_readers;   //mutex for mutual exclusion of readers variable
+  mutex m_readers;      //mutex for determining if readers can continue to write
   mutex m_worker_queue; //mutex for determining if there is a request for modification like writing or removing
+  bool bounded;
 
 public:
+  synchronized_vector(int bound)
+  {
+    bounded = true;
+    buffer.reserve(bound);
+  }
+
+  synchronized_vector() //unbounded buffer
+  {
+    bounded = false;
+  }
   void write(T item)
   {
+    if (bounded && buffer.size() == buffer.capacity())
+    {
+      throw runtime_error("Error: Writing to the buffer was unsuccessful. Cause: the buffer is full!");
+    }
+
     m_worker_queue.lock(); // signal that a writer wants to write
-    m_readers.lock();       //wait till all readers are done reading
+    m_readers.lock();      //wait till all readers are done reading
     buffer.push_back(item);
     m_readers.unlock(); //signal that the writer is done writing so that readers can start reading or another writer is allowed to write
     m_worker_queue.unlock();
@@ -40,8 +56,14 @@ public:
 
   void remove(int index)
   {
+    const int size = buffer.size();
+    if (index < 0 || index >= size)
+    {
+      throw invalid_argument("Error: provided index is out of bounds! Provided index: " + to_string(index) + ". Actual size: " + to_string(size));
+    }
+
     m_worker_queue.lock(); //signal that there is a request for removal
-    m_readers.lock(); //wait till all readers are done reading
+    m_readers.lock();      //wait till all readers are done reading
     buffer.erase(buffer.begin() + index);
     m_readers.unlock();
     m_worker_queue.unlock();
@@ -49,6 +71,12 @@ public:
 
   T read(int index)
   {
+    const int size = buffer.size();
+    if (index < 0 || index >= size)
+    {
+      throw invalid_argument("Error: provided index is out of bounds! Provided index: " + to_string(index) + ". Actual size: " + to_string(size));
+    }
+
     m_worker_queue.lock(); //check whether there are modifications are taking place or is being requested, if not just release the lock again
     m_worker_queue.unlock();
 
@@ -81,14 +109,21 @@ public:
   }
 };
 
-synchronized_vector<string> logger = {};
-synchronized_vector<int> buffer;
-
-void writeToLogger(string msg)
+synchronized_vector<string> logger;
+synchronized_vector<int> buffer(10);
+void writeToBuffer()
 {
   for (int i = 0; i < 10; i++)
   {
-    logger.write(msg);
+    try
+    {
+      buffer.write(i);
+      logger.write("Success: Writing " + to_string(i) + " was successful.");
+    }
+    catch (const runtime_error re)
+    {
+      logger.write(re.what());
+    }
   }
 }
 #include <iostream>
@@ -96,15 +131,15 @@ void writeToLogger(string msg)
 
 int main(int argc, char *argv[])
 {
-  thread t1 = thread(writeToLogger, "first thread");
-  thread t2 = thread(writeToLogger, "second thread");
+  thread t1 = thread(writeToBuffer);
+  thread t2 = thread(writeToBuffer);
   t1.join();
   t2.join();
 
   ofstream myfile;
   myfile.open("example.txt", std::ios_base::app);
-  
-  for (int i = 0; i < 20; i++)
+
+  for (int i = 0; i < logger.size(); i++)
     myfile << logger.read(i) << "\n";
 
   myfile.close();
