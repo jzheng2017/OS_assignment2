@@ -41,9 +41,21 @@ Subsequently it will try to acquire the `m_readers` mutex, this is to see if the
 When finished writing it will release both the `m_readers` and `m_worker_queue` mutex.
 
 ### Remove
+A removal request is treated the same as write request, in the sense that they are both workers. This basically means that they have to acquire the same mutexes, namely `m_worker_queue` and `m_readers`. When both are acquired it can remove the element at the index that was specified by the user making the request. 
+
+After a successful removal both mutexes are released again.
+
+### Bounded and unbounded buffer
+The way bounded and unbounded behaviour is enforced is using one variable, namely, `bounded`. The `bounded` variable is a boolean, which is set at the creation of a `synchronized_vector`. 
+
+The `synchronized_vector` provides two constructors, namely one without any arguments (unbounded) and a constructor with one argument (bounded) which is the `bound` value. Using this passed in argument the boundary for the vector is set. This is done using the `reserve` function from the `vector` class which allows one to set the `capacity` of the `vector`. In this one argument constructor the global `bounded` variable is also set to `true`. This `bounded` variable is used in the operations to determine if the set boundary has been reached or not.
 
 ### Resize
+After the creation of the `synchronized_vector` it is also possible to resize the capacity of the `vector`. This resize request just like write and removal is treated as a worker, as it modifies the data/structur of the vector. Therefore it has to go through the same process of acquiring `m_readers` and `m_worker_queue`. 
 
+After having done that it will resize the capacity using two functions, `resize` to resize the `vector` and `reserve` to set the allocated `capacity`. Lastly, it also has to set the `bounded` variable to `true` because it is now bounded by the specified `size` argument.
+
+At last it has to release the acquired mutexes again.
 
 ## Common issues
 ### Deadlock
