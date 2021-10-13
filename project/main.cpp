@@ -88,7 +88,7 @@ public:
     readers++;
     m_no_readers.unlock();
 
-    T value = buffer[index];
+    T value = buffer.at(index);
 
     m_no_readers.lock();
     readers--;
@@ -110,7 +110,7 @@ public:
 };
 
 synchronized_vector<string> logger;
-synchronized_vector<int> buffer(10);
+synchronized_vector<int> buffer(20);
 void writeToBuffer()
 {
   for (int i = 0; i < 10; i++)

@@ -1,4 +1,4 @@
-# Shell Report
+# Synchronization Report
 
 ## Operating System | Assignment 2 | 13-10-2021
 
