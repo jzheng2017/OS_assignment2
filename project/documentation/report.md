@@ -23,8 +23,22 @@ In our solution we use three mutexes: `m_no_readers`, `m_readers` and `m_worker_
 `m_worker_queue`: This mutex is used to determine if there are any 'workers' busy or requesting to work. A worker is an entity that wants to perform modification on the data. For instance a worker wanting to perform a write/remove/resize operation.
 
 ### Read
+The read logic is by far the most complicated in terms of amount of code, and that isn't surprising. The readers has to take into account the amount of concurrent readers and the fact that there are workers and have to provide priority to them.
+
+When a read request is coming in, the first thing it will do it check if there are any workers busy, or requesting to work. This is done by executing `m_worker_queue.lock()`. If that is the case then it will get stuck there and wait till they are finished, if no worker is busy then it will release the lock again by executing `m_worker_queue.unlock()`. 
+
+Next step is to increment the `readers` count by one, it will first have to acquire the `m_no_readers` mutex. When acquired it will also check if it is the first reader, if so then it will try to acquire the `m_readers` mutex. As explained above, this lock is needed to tell the workers that there are in fact readers busy. 
+
+When all is done, it can finally read its desired value. The user requesting can provide a numeric value at what `index` in the vector they want the value of. 
+
+After finishing with reading it has to decrement the `readers` variable by one, and if it is the last reader it will have to release the `m_readers` mutex to let the workers know that all readers have finished.
 
 ### Write
+The write logic compared to the read logic is much simpler. At the start of a write request it will first try to acquire the `m_worker_queue` mutex, if acquired then there was no worker currently busy. It can then continue.
+
+Subsequently it will try to acquire the `m_readers` mutex, this is to see if there are any readers currently busy, and if acquired to prevent readers from reading when a writer is busy. If the `m_readers` mutex is acquired it can then finally write to the vector. The value will be written to the end of the vector. 
+
+When finished writing it will release both the `m_readers` and `m_worker_queue` mutex.
 
 ### Remove
 
