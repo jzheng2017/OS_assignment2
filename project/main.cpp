@@ -103,6 +103,17 @@ public:
     return value;
   }
 
+  void resize(int size)
+  {
+    m_worker_queue.lock(); //signal that there is a request for resize
+    m_readers.lock();      //wait till all readers are done reading
+    cout << "resize \n";
+    bounded = true;
+    buffer.resize(size);
+    buffer.reserve(size);
+    m_readers.unlock();
+    m_worker_queue.unlock();
+  }
   int size()
   {
     return buffer.size();
@@ -110,7 +121,7 @@ public:
 };
 
 synchronized_vector<string> logger;
-synchronized_vector<int> buffer(20);
+synchronized_vector<int> buffer;
 void writeToBuffer()
 {
   for (int i = 0; i < 10; i++)
@@ -129,16 +140,24 @@ void writeToBuffer()
 #include <iostream>
 #include <fstream>
 
+void resizeBuffer(){
+  for (int i = 0; i < 10; i++){
+  buffer.resize(5);
+  }
+}
 int main(int argc, char *argv[])
 {
   thread t1 = thread(writeToBuffer);
   thread t2 = thread(writeToBuffer);
+  thread t3 = thread(resizeBuffer);
   t1.join();
   t2.join();
+  t3.join();
 
   ofstream myfile;
   myfile.open("example.txt", std::ios_base::app);
-
+  // cout << logger.size();
+  cout << buffer.size();
   for (int i = 0; i < logger.size(); i++)
     myfile << logger.read(i) << "\n";
 
