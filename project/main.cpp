@@ -42,7 +42,7 @@ public:
   }
   void write(T item)
   {
-    if (bounded && buffer.size() == buffer.capacity())
+    if (bounded && this->size() == buffer.capacity())
     {
       throw runtime_error("Error: Writing to the buffer was unsuccessful. Cause: the buffer is full!");
     }
@@ -56,7 +56,7 @@ public:
 
   void remove(int index)
   {
-    const int size = buffer.size();
+    const int size = this->size();
     if (index < 0 || index >= size)
     {
       throw invalid_argument("Error: provided index is out of bounds! Provided index: " + to_string(index) + ". Actual size: " + to_string(size));
@@ -71,7 +71,7 @@ public:
 
   T read(int index)
   {
-    const int size = buffer.size();
+    const int size = this->size();;
     if (index < 0 || index >= size)
     {
       throw invalid_argument("Error: provided index is out of bounds! Provided index: " + to_string(index) + ". Actual size: " + to_string(size));
@@ -107,16 +107,40 @@ public:
   {
     m_worker_queue.lock(); //signal that there is a request for resize
     m_readers.lock();      //wait till all readers are done reading
-    cout << "resize \n";
     bounded = true;
     buffer.resize(size);
     buffer.reserve(size);
     m_readers.unlock();
     m_worker_queue.unlock();
   }
+
   int size()
   {
-    return buffer.size();
+    //treat reading the size as a reading request
+    m_worker_queue.lock();
+    m_worker_queue.unlock();
+
+    m_no_readers.lock();
+    if (readers == 0)
+    {
+      m_readers.lock(); //if it is the first reader then signal that there are readers busy
+    }
+    readers++;
+    m_no_readers.unlock();
+
+    int size = buffer.size();
+    
+    m_no_readers.lock();
+    readers--;
+
+    if (readers == 0)
+    {
+      m_readers.unlock(); //if it was the last reader then signal that there are no readers busy anymore
+    }
+
+    m_no_readers.unlock();
+
+    return size;
   }
 };
 
@@ -140,9 +164,11 @@ void writeToBuffer()
 #include <iostream>
 #include <fstream>
 
-void resizeBuffer(){
-  for (int i = 0; i < 10; i++){
-  buffer.resize(5);
+void resizeBuffer()
+{
+  for (int i = 0; i < 10; i++)
+  {
+    buffer.resize(5);
   }
 }
 int main(int argc, char *argv[])
