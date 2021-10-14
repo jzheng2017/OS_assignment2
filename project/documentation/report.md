@@ -53,7 +53,7 @@ The `synchronized_vector` provides two constructors, namely one without any argu
 ### Resize
 After the creation of the `synchronized_vector` it is also possible to resize the capacity of the `vector`. This resize request just like write and removal is treated as a worker, as it modifies the data/structur of the vector. Therefore it has to go through the same process of acquiring `m_readers` and `m_worker_queue`. 
 
-After having done that it will resize the capacity using two functions, `resize` to resize the `vector` and `reserve` to set the allocated `capacity`. Lastly, it also has to set the `bounded` variable to `true` because it is now bounded by the specified `size` argument.
+After having done that it will resize the capacity using one function. `reserve` to set the allocated `capacity`. Lastly, it also has to set the `bounded` variable to `true` because it is now bounded by the specified `size` argument.
 
 At last it has to release the acquired mutexes again.
 

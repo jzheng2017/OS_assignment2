@@ -108,7 +108,6 @@ public:
     m_worker_queue.lock(); //signal that there is a request for resize
     m_readers.lock();      //wait till all readers are done reading
     bounded = true;
-    buffer.resize(size);
     buffer.reserve(size);
     m_readers.unlock();
     m_worker_queue.unlock();
@@ -157,7 +156,7 @@ public:
     readers++;
     m_no_readers.unlock();
 
-    bool capacity_reached = bounded && buffer.size() == buffer.capacity();
+    bool capacity_reached = bounded && (buffer.size() == buffer.capacity());
 
     m_no_readers.lock();
     readers--;
