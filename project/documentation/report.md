@@ -11,7 +11,7 @@
 In this chapter the design of our implementation will be discussed.
 
 ### Synchronized vector
-We have decided to create a special "wrapper" class `synchronized_vector`, where all the read/write operations can be performed on a `vector`. As the name says the operations performed on this vector are guaranteed to be thread safe. This class uses a technique called generics which allows us to reuse this `synchronized_vector` class for different types. This is obviously very convenient as it allows us to use this `synchronized_vector` for both the buffer (containing integer values) and the logger (containing string values). This also allows us to guarantee consistent behavior across all vectors used, and most important of all, thread safety.
+We have decided to create a special "wrapper" class `synchronized_vector`, where all the read/write operations can be performed on a `vector`. As the name says, the operations performed on this vector are guaranteed to be thread safe. This class uses a technique called generics which allows us to reuse this `synchronized_vector` class for different types. This is obviously very convenient as it allows us to use this `synchronized_vector` for both the buffer (containing integer values) and the logger (containing string values). This also allows us to guarantee consistent behavior across all vectors used, and most important of all, thread safety.
 
 ### Mutexes
 In our solution we use three mutexes: `m_no_readers`, `m_readers` and `m_worker_queue` respectively.
@@ -25,7 +25,7 @@ In our solution we use three mutexes: `m_no_readers`, `m_readers` and `m_worker_
 ### Read
 The read logic is by far the most complicated in terms of amount of code, and that isn't surprising. The readers has to take into account the amount of concurrent readers and the fact that there are workers and have to provide priority to them.
 
-When a read request is coming in, the first thing it will do it check if there are any workers busy, or requesting to work. This is done by executing `m_worker_queue.lock()`. If that is the case then it will get stuck there and wait till they are finished, if no worker is busy then it will release the lock again by executing `m_worker_queue.unlock()`. 
+When a read request is coming in, the first thing it will do is check whether there are any workers busy, or requesting to work. This is done by executing `m_worker_queue.lock()`. If that is the case then it will get stuck there and wait till they are finished, if no worker is busy then it will release the lock again by executing `m_worker_queue.unlock()`. 
 
 Next step is to increment the `readers` count by one, it will first have to acquire the `m_no_readers` mutex. When acquired it will also check if it is the first reader, if so then it will try to acquire the `m_readers` mutex. As explained above, this lock is needed to tell the workers that there are in fact readers busy. 
 
@@ -59,9 +59,9 @@ At last it has to release the acquired mutexes again.
 
 ## Common issues
 ### Deadlock
-
+There are no deadlocks in our solution. This is guaranteed by the fact that there is no circulair waiting in our solution. Only a single worker or multiple readers can work at the same time. If a worker is busy then it is guaranteed that its acquired mutexes will be released eventually. If readers are busy then it also guaranteed that its acquired mutex(es) will be released by the last reader. Following from this fact we can conclude that both sides can release their mutexes independent from the other, hence no circular waiting can occur.
 ### Starvation
-
+In our solution there is no starvation. This is guaranteed by that multiple readers can read at the same time *and* workers have priority over readers. The way it works is that a reader can read if there are any readers busy. Because of the fact that there are readers busy, we know that there can not be any workers. However, if a worker has requested to work, then new readers cannot start reading but has to give workers also a chance. This basically guarantees that both sides get to do their respective work.
 
 ## Testing
 
