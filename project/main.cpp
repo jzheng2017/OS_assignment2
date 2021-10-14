@@ -127,15 +127,18 @@ public:
 
   void resize(int size)
   {
-    if (size < 0)
+    if (size < -1)
     {
-      throw new invalid_argument("Error: provided size was not a positive number. Provided size: " + to_string(size));
+      throw new invalid_argument("Error: provided size was not a valid number. Provided size: " + to_string(size));
     }
     m_worker_queue.lock(); //signal that there is a request for resize
     m_readers.lock();      //wait till all readers are done reading
     //start critical section
-
-    if (size < buffer.size())
+    if (size == -1)
+    {
+      bounded = false;
+    }
+    else if (size < buffer.size())
     {
       buffer.resize(size);
     }
@@ -296,11 +299,11 @@ void test_4()
 }
 
 void test_5()
-{ 
+{
   assertTrue(logger.size() == 0);
   assertTrue(buffer.size() == 0);
   resizeBuffer(1);
- 
+
   //should be okay
   writeToBuffer(1);
   //third assertion should be false
@@ -331,6 +334,16 @@ void test_6()
 
   assertTrue(buffer.size() == 5);
 }
+
+void test_7()
+{
+  resizeBuffer(1);  //first make it bounded
+  assertTrue(buffer.size() == 0); //should still be empty
+  resizeBuffer(-1); // now make it unbounded
+  writeFromToBuffer(0, 10); //should be possible because it's unbounded
+
+  assertTrue(buffer.size() == 10);
+}
 /**
  * TESTS END HERE 
  */
@@ -339,8 +352,9 @@ int main(int argc, char *argv[])
 {
   //only run 1 test at a time.
   //running multiple will produce incorrect test results as the buffer and logger is not cleared after each test
-  test_4();
+  // test_4();
   // test_5();
   // test_6();
+  test_7();
   return 0;
 }

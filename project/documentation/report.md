@@ -55,6 +55,8 @@ After the creation of the `synchronized_vector` it is also possible to resize th
 
 After having done that it will resize the size using one function. Namely `resize` to set the `size` of the vector. It also sets a `maxBound` variable to use as a max bound. Lastly, it also has to set the `bounded` variable to `true` because it is now bounded by the specified `size` argument.
 
+If the `size` argument equals `-1` then the buffer will be set to be unbounded.
+
 At last it has to release the acquired mutexes again.
 
 ## Common issues
@@ -78,6 +80,7 @@ If the functionality behaves correctly in a multi-threaded environment, we can s
 | 3 | Multiple readers and writers try to work at the same time| Readers and writers can perform their respective operations without any issues. At the end the size of the buffer should equal to `n*i` where `n` is the number of writers and `i` number of items added per writer.| --- | With this test we want to prove that readers and writers can work together in a multi-threaded environment and that there are no deadlocks/starvation. | ---|
 | 4 | Removing from the buffer when size equals `0` (empty) | This can not be done and will be logged to the logger. | The appropriate log message is written to the logger | With this test we want to prove that removing from an empty buffer will be handled correctly. | see test_4 in the code |
 | 5 | Adding to the buffer when size equals the capacity (full buffer) | This can not be done and will be logged to the logger | The appropriate log message is written to the logger | With this test we want to prove that writing to a full buffer will be handled correctly.| see test_5 in the code |
-| 6 | Resizing the buffer while there are readers/writers busy | Resizing is treated as a worker and thus will have to wait for its turn. This is expected to go correctly, and the bound will be set to the specified input. | --- | With this test we want to prove that resizing the buffer can be done without any issues in a multi-thread environment while there might be readers and workers busy. |see test_6 in the code |
+| 6 | Resizing the buffer while there are readers/writers busy | Resizing is treated as a worker and thus will have to wait for its turn. This is expected to go correctly, and the bound will be set to the specified input. | The actual output mathces the expected output. | With this test we want to prove that resizing the buffer can be done without any issues in a multi-thread environment while there might be readers and workers busy. |see test_6 in the code |
+|7| Setting size to -1 makes the buffer unbounded | The buffer will be unbounded and writing an arbitrary number of times will be possible.| The actual output matches the expected out. | see test_7 in the code|
 
 ### Conclusion
