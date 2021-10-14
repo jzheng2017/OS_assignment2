@@ -42,7 +42,7 @@ public:
   }
   void write(T item)
   {
-    if (bounded && this->size() == buffer.capacity())
+    if (bounded && this->size() == this->capacity())
     {
       throw runtime_error("Error: Writing to the buffer was unsuccessful. Cause: the buffer is full!");
     }
@@ -129,7 +129,7 @@ public:
     m_no_readers.unlock();
 
     int size = buffer.size();
-    
+
     m_no_readers.lock();
     readers--;
 
@@ -142,24 +142,50 @@ public:
 
     return size;
   }
+
+  private:
+  int capacity(){
+        //treat reading the capacity as a reading request
+    m_worker_queue.lock();
+    m_worker_queue.unlock();
+
+    m_no_readers.lock();
+    if (readers == 0)
+    {
+      m_readers.lock(); //if it is the first reader then signal that there are readers busy
+    }
+    readers++;
+    m_no_readers.unlock();
+
+    int capacity = buffer.capacity();
+
+    m_no_readers.lock();
+    readers--;
+
+    if (readers == 0)
+    {
+      m_readers.unlock(); //if it was the last reader then signal that there are no readers busy anymore
+    }
+
+    m_no_readers.unlock();
+
+    return capacity;
+  }
 };
 
 synchronized_vector<string> logger;
 synchronized_vector<int> buffer;
-void writeToBuffer()
+void writeToBuffer(int num)
 {
-  for (int i = 0; i < 10; i++)
-  {
     try
     {
-      buffer.write(i);
-      logger.write("Success: Writing " + to_string(i) + " was successful.");
+      buffer.write(num);
+      logger.write("Success: Writing " + to_string(num) + " was successful.");
     }
     catch (const runtime_error re)
     {
       logger.write(re.what());
     }
-  }
 }
 #include <iostream>
 #include <fstream>
@@ -173,8 +199,8 @@ void resizeBuffer()
 }
 int main(int argc, char *argv[])
 {
-  thread t1 = thread(writeToBuffer);
-  thread t2 = thread(writeToBuffer);
+  thread t1 = thread(writeToBuffer, 1);
+  thread t2 = thread(writeToBuffer, 1);
   thread t3 = thread(resizeBuffer);
   t1.join();
   t2.join();

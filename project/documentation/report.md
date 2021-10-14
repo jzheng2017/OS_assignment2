@@ -73,6 +73,7 @@ If the functionality behaves correctly in a multi-threaded environment, we can s
 
 | # | Description | Expected output | Actual output | Additional comments |
 | --- | --- | --- | --- | --- |
-| 1 | --- | --- | --- | --- |
+| 1 | Multiple writers request to write [n, n+10] to the buffer | Size of the buffer and logger will be n*10 (where n is the number of writers). The buffer will contain all the numbers written by the writers and the logger will contain the log messages that a specific number was written to the buffer | --- | --- |
+| 2 | Multiple readers try to read from a non zero size buffer |  | | |
 
 ### Conclusion
