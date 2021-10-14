@@ -71,13 +71,13 @@ We will test whether `synchronized_vector` behaves correctly in a multi-threaded
 
 If the functionality behaves correctly in a multi-threaded environment, we can safely assume that it performs the same in a single-threaded environment and thus will not be explicitly tested.
 
-| # | Description | Expected output | Actual output | Additional comments |
-| --- | --- | --- | --- | --- |
-| 1 | Multiple writers request to write [n, n+10] to the buffer | Size of the buffer and logger will be `n*10` (where n is the number of writers). The buffer will contain all the numbers written by the writers and the logger will contain the log messages that a specific number was written to the buffer | --- | --- |
-| 2 | Multiple readers try to read from a non zero size buffer | Reading will be performed correctly. If read `n` times, it will receive `n` items. | --- | --- |
-| 3 | Multiple readers and writers try to work at the same time| Readers and writers can perform their respective operations without any issues. At the end the size of the buffer should equal to `n*i` where `n` is the number of writers and `i` number of items added per writer.| --- | --- |
-| 4 | Removing from the buffer when size equals `0` (empty) | This can not be done and will be logged to the logger. | The appropriate log message is written to the logger | see test_4 in the code |
-| 5 | Adding to the buffer when size equals the capacity (full buffer) | This can not be done and will be logged to the logger | The appropriate log message is written to the logger | see test_5 in the code |
-| 6 | Resizing the buffer while there are readers/writers busy | Resizing is treated as a worker and thus will have to wait for its turn. This is expected to go correctly, and the bound will be set to the specified input. | --- | see test_6 in the code |
+| # | Description | Expected output | Actual output | Rationale |Additional comments |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Multiple writers request to write [n, n+10] to the buffer | Size of the buffer and logger will be `n*10` (where n is the number of writers). The buffer will contain all the numbers written by the writers and the logger will contain the log messages that a specific number was written to the buffer |---| With this test we want to prove that writing in a multi-threaded environment works correctly. | --- |
+| 2 | Multiple readers try to read from a non zero size buffer | Reading will be performed correctly. If read `n` times, it will receive `n` items. | --- | With this test we want to prove that reading in a multi-threaded environment works correctly. | ---|
+| 3 | Multiple readers and writers try to work at the same time| Readers and writers can perform their respective operations without any issues. At the end the size of the buffer should equal to `n*i` where `n` is the number of writers and `i` number of items added per writer.| --- | With this test we want to prove that readers and writers can work together in a multi-threaded environment and that there are no deadlocks/starvation. | ---|
+| 4 | Removing from the buffer when size equals `0` (empty) | This can not be done and will be logged to the logger. | The appropriate log message is written to the logger | With this test we want to prove that removing from an empty buffer will be handled correctly. | see test_4 in the code |
+| 5 | Adding to the buffer when size equals the capacity (full buffer) | This can not be done and will be logged to the logger | The appropriate log message is written to the logger | With this test we want to prove that writing to a full buffer will be handled correctly.| see test_5 in the code |
+| 6 | Resizing the buffer while there are readers/writers busy | Resizing is treated as a worker and thus will have to wait for its turn. This is expected to go correctly, and the bound will be set to the specified input. | --- | With this test we want to prove that resizing the buffer can be done without any issues in a multi-thread environment while there might me readers and workers busy. |see test_6 in the code |
 
 ### Conclusion
