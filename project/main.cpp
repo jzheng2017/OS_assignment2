@@ -22,13 +22,13 @@ template <typename T>
 class synchronized_vector
 {
   vector<T> buffer;
-  int readers = 0; //numer of readers
+  int readers = 0; //number of readers
 
   mutex m_no_readers;   //mutex for mutual exclusion of readers variable
   mutex m_readers;      //mutex for determining if readers can continue to write
   mutex m_worker_queue; //mutex for determining if there is a request for modification like writing or removing
-  bool bounded;
-  int maxBound = 0;
+  bool bounded;         //determines whether the buffer is bounded or not
+  int maxBound = 0;     //determines the max boundary of the buffer, initially zero
 
 public:
   synchronized_vector(int bound)
@@ -288,6 +288,95 @@ void logger_contains(string text)
   assertTrue(contains);
 }
 
+void test_1()
+{
+  assertTrue(buffer.size() == 0);
+  assertTrue(logger.size() == 0);
+
+  thread t1 = thread(writeFromToBuffer, 0, 10);
+  thread t2 = thread(writeFromToBuffer, 10, 20);
+  thread t3 = thread(writeFromToBuffer, 20, 30);
+  thread t4 = thread(writeFromToBuffer, 30, 40);
+  thread t5 = thread(writeFromToBuffer, 40, 50);
+
+  t1.join();
+  t2.join();
+  t3.join();
+  t4.join();
+  t5.join();
+
+  assertTrue(buffer.size() == 50);
+  assertTrue(logger.size() == 50);
+}
+
+vector<int> results;
+
+void readBufferAndPushToResults()
+{
+  //we are aware that calling buffer.size() from here might cause issues if the size changed in the meantime
+  //however since this is only used for test_2 and we are only reading, this is not an issue
+  for (int i = 0; i < buffer.size(); i++)
+  {
+    results.push_back(buffer.read(i));
+  }
+}
+
+void test_2()
+{
+  assertTrue(buffer.size() == 0);
+  assertTrue(logger.size() == 0);
+
+  writeFromToBuffer(0, 10);
+
+  thread t1(readBufferAndPushToResults);
+  thread t2(readBufferAndPushToResults);
+  thread t3(readBufferAndPushToResults);
+  thread t4(readBufferAndPushToResults);
+  thread t5(readBufferAndPushToResults);
+
+  t1.join();
+  t2.join();
+  t3.join();
+  t4.join();
+  t5.join();
+
+  assertTrue(results.size() == 50);
+}
+
+void test_3()
+{
+
+  assertTrue(buffer.size() == 0);
+  assertTrue(logger.size() == 0);
+
+  writeFromToBuffer(0, 50);
+
+  thread t1 = thread(writeFromToBuffer, 0, 10);
+  thread t2 = thread(writeFromToBuffer, 10, 20);
+  thread t3 = thread(writeFromToBuffer, 20, 30);
+  thread t4 = thread(writeFromToBuffer, 30, 40);
+  thread t5 = thread(writeFromToBuffer, 40, 50);
+  thread t6 = thread(readFromToBuffer, 0, 10);
+  thread t7 = thread(readFromToBuffer, 10, 20);
+  thread t8 = thread(readFromToBuffer, 20, 30);
+  thread t9 = thread(readFromToBuffer, 30, 40);
+  thread t10 = thread(readFromToBuffer, 40, 50);
+
+  t1.join();
+  t2.join();
+  t3.join();
+  t4.join();
+  t5.join();
+  t6.join();
+  t7.join();
+  t8.join();
+  t9.join();
+  t10.join();
+
+  assertTrue(buffer.size() == 100);
+  assertTrue(logger.size() == 150); //50 from initial write + 100 from the threads
+}
+
 void test_4()
 {
   assertTrue(logger.size() == 0);
@@ -337,10 +426,10 @@ void test_6()
 
 void test_7()
 {
-  resizeBuffer(1);  //first make it bounded
+  resizeBuffer(1);                //first make it bounded
   assertTrue(buffer.size() == 0); //should still be empty
-  resizeBuffer(-1); // now make it unbounded
-  writeFromToBuffer(0, 10); //should be possible because it's unbounded
+  resizeBuffer(-1);               // now make it unbounded
+  writeFromToBuffer(0, 10);       //should be possible because it's unbounded
 
   assertTrue(buffer.size() == 10);
 }
@@ -352,9 +441,12 @@ int main(int argc, char *argv[])
 {
   //only run 1 test at a time.
   //running multiple will produce incorrect test results as the buffer and logger is not cleared after each test
+  test_1();
+  // test_2();
+  // test_3();
   // test_4();
   // test_5();
   // test_6();
-  test_7();
+  // test_7();
   return 0;
 }
