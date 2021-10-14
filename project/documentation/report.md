@@ -5,7 +5,7 @@
 | Student name | Student number |
 | ------------ | -------------- | 
 | Jiankai Zheng | s1080484 |
-| Shenghang Wang | ? |
+| Shenghang Wang | s1034413 |
 
 ## Design
 In this chapter the design of our implementation will be discussed.
