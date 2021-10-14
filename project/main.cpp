@@ -183,6 +183,7 @@ private:
     //start critical section
 
     bool capacity_reached = bounded && (buffer.size() == buffer.capacity());
+    cout << "bounded: " << bounded << " buffer size: " << buffer.size() << " capacity: " << buffer.capacity() << "\n";
     //end critical section
 
     m_no_readers.lock();
@@ -218,7 +219,7 @@ void writeToBuffer(int num)
   }
 }
 
-int readFromBuffer(int index)
+void readFromBuffer(int index)
 {
   try
   {
@@ -252,6 +253,14 @@ void writeFromToBuffer(int start, int end)
   }
 }
 
+void readFromToBuffer(int start, int end)
+{
+  for (int i = start; i < end; i++)
+  {
+    readFromBuffer(i);
+  }
+}
+
 void resizeBuffer(int size)
 {
   try
@@ -275,7 +284,9 @@ void assertTrue(bool assertion)
   if (!assertion)
   {
     cout << "Assertion was false! \n";
-  } else {
+  }
+  else
+  {
     cout << "Assertion was true! \n";
   }
 }
@@ -299,27 +310,48 @@ void test_4()
 {
   assertTrue(logger.size() == 0);
   assertTrue(buffer.size() == 0);
-  
+
   removeFromBuffer(0);
 
   logger_contains("Error: provided index is out of bounds! Provided index: 0. Actual size: 0");
 }
 
-void test_5(){
+void test_5()
+{
   resizeBuffer(1);
   assertTrue(logger.size() == 0);
   assertTrue(buffer.size() == 0);
- 
+
   //should be okay
   writeToBuffer(1);
   //third assertion should be false
   logger_contains("Error: Writing to the buffer was unsuccessful. Cause: the buffer is full!");
-  
+
   writeToBuffer(2);
   //true
   logger_contains("Error: Writing to the buffer was unsuccessful. Cause: the buffer is full!");
 }
 
+void test_6()
+{
+  //populate buffer so that reading won't go wrong.
+  writeFromToBuffer(0, 10);
+  assertTrue(logger.size() == 10);
+  assertTrue(buffer.size() == 10);
+
+  thread t1 = thread(writeFromToBuffer, 0, 10);
+  thread t2 = thread(writeFromToBuffer, 10, 20);
+  thread t3 = thread(resizeBuffer, 5);
+  thread t4 = thread(readFromBuffer, 5);
+  thread t5 = thread(readFromToBuffer, 5, 10);
+  t1.join();
+  t2.join();
+  t3.join();
+  t4.join();
+  t5.join();
+
+  assertTrue(buffer.size() == 5);
+}
 /**
  * TESTS END HERE 
  */
@@ -346,6 +378,7 @@ int main(int argc, char *argv[])
 
   // myfile.close();
   // test_4();
-  test_5();
+  // test_5();
+  test_6();
   return 0;
 }
