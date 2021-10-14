@@ -433,6 +433,34 @@ void test_7()
 
   assertTrue(buffer.size() == 10);
 }
+
+void removeNTimes(int n)
+{
+  for (int i = 0; i < n; i++)
+  {
+    removeFromBuffer(n);
+  }
+}
+void test_8()
+{
+  assertTrue(buffer.size() == 0);
+  writeFromToBuffer(0, 100);
+  assertTrue(buffer.size() == 100);
+
+  thread t1 = thread(removeNTimes, 5);
+  thread t2 = thread(removeNTimes, 5);
+  thread t3 = thread(removeNTimes, 5);
+  thread t4 = thread(removeNTimes, 5);
+  thread t5 = thread(removeNTimes, 5);
+  
+  t1.join();
+  t2.join();
+  t3.join();
+  t4.join();
+  t5.join();
+
+  assertTrue(buffer.size() == 75);
+}
 /**
  * TESTS END HERE 
  */
@@ -441,12 +469,13 @@ int main(int argc, char *argv[])
 {
   //only run 1 test at a time.
   //running multiple will produce incorrect test results as the buffer and logger is not cleared after each test
-  test_1();
+  // test_1();
   // test_2();
   // test_3();
   // test_4();
   // test_5();
   // test_6();
   // test_7();
+  test_8();
   return 0;
 }
