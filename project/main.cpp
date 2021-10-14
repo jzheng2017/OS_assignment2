@@ -356,27 +356,10 @@ void test_6()
  * TESTS END HERE 
  */
 
-#include <iostream>
-#include <fstream>
-
 int main(int argc, char *argv[])
 {
-  // cout << "size: " << buffer.size();
-  // thread t3 = thread(resizeBuffer);
-  // thread t1 = thread(writeToBuffer, 1);
-  // thread t2 = thread(writeToBuffer, 1);
-  // t1.join();
-  // t2.join();
-  // t3.join();
-
-  // ofstream myfile;
-  // myfile.open("example.txt", std::ios_base::app);
-  // // cout << logger.size();
-  // cout << buffer.size();
-  // for (int i = 0; i < logger.size(); i++)
-  //   myfile << logger.read(i) << "\n";
-
-  // myfile.close();
+  //only run 1 test at a time. 
+  //running multiple will produce incorrect test results as the buffer and logger is not cleared after each test
   // test_4();
   // test_5();
   test_6();
