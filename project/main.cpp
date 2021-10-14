@@ -28,12 +28,13 @@ class synchronized_vector
   mutex m_readers;      //mutex for determining if readers can continue to write
   mutex m_worker_queue; //mutex for determining if there is a request for modification like writing or removing
   bool bounded;
+  int maxBound = 0;
 
 public:
   synchronized_vector(int bound)
   {
     bounded = true;
-    buffer.reserve(bound);
+    maxBound = bound;
   }
 
   synchronized_vector() //unbounded buffer
@@ -42,14 +43,18 @@ public:
   }
   void write(T item)
   {
-    if (this->capacity_reached())
-    {
-      throw runtime_error("Error: Writing to the buffer was unsuccessful. Cause: the buffer is full!");
-    }
 
     m_worker_queue.lock(); // signal that a writer wants to write
     m_readers.lock();      //wait till all readers are done reading
     //start critical section
+    bool capacity_reached = bounded && (buffer.size() == maxBound);
+
+    if (capacity_reached)
+    {
+      m_readers.unlock();
+      m_worker_queue.unlock();
+      throw runtime_error("Error: Writing to the buffer was unsuccessful. Cause: the buffer is full!");
+    }
     buffer.push_back(item);
     //end critical section
     m_readers.unlock(); //signal that the writer is done writing so that readers can start reading or another writer is allowed to write
@@ -58,15 +63,16 @@ public:
 
   void remove(int index)
   {
-    const int size = this->size();
-    if (index < 0 || index >= size)
-    {
-      throw invalid_argument("Error: provided index is out of bounds! Provided index: " + to_string(index) + ". Actual size: " + to_string(size));
-    }
-
     m_worker_queue.lock(); //signal that there is a request for removal
     m_readers.lock();      //wait till all readers are done reading
     //start critical section
+    int size = buffer.size();
+    if (index < 0 || index >= size)
+    {
+      m_readers.unlock();
+      m_worker_queue.unlock();
+      throw invalid_argument("Error: provided index is out of bounds! Provided index: " + to_string(index) + ". Actual size: " + to_string(size));
+    }
     buffer.erase(buffer.begin() + index);
     //end critical section
     m_readers.unlock();
@@ -75,12 +81,6 @@ public:
 
   T read(int index)
   {
-    const int size = this->size();
-
-    if (index < 0 || index >= size)
-    {
-      throw invalid_argument("Error: provided index is out of bounds! Provided index: " + to_string(index) + ". Actual size: " + to_string(size));
-    }
 
     m_worker_queue.lock(); //check whether there are modifications are taking place or is being requested, if not just release the lock again
     m_worker_queue.unlock();
@@ -90,6 +90,17 @@ public:
     if (readers == 0)
     {
       m_readers.lock(); //if it is the first reader then signal that there are readers busy
+    }
+
+    int size = buffer.size();
+    if (index < 0 || index >= size)
+    {
+      if (readers == 0)
+      {
+        m_readers.unlock();
+      }
+      m_no_readers.unlock();
+      throw invalid_argument("Error: provided index is out of bounds! Provided index: " + to_string(index) + ". Actual size: " + to_string(size));
     }
     readers++;
     //end critical section
@@ -123,8 +134,14 @@ public:
     m_worker_queue.lock(); //signal that there is a request for resize
     m_readers.lock();      //wait till all readers are done reading
     //start critical section
+
+    if (size < buffer.size())
+    {
+      buffer.resize(size);
+    }
+
     bounded = true;
-    buffer.reserve(size);
+    maxBound = size;
     //end critical section
     m_readers.unlock();
     m_worker_queue.unlock();
@@ -162,44 +179,6 @@ public:
     m_no_readers.unlock();
 
     return size;
-  }
-
-private:
-  bool capacity_reached()
-  {
-    //treat reading the capacity as a reading request
-    m_worker_queue.lock();
-    m_worker_queue.unlock();
-
-    m_no_readers.lock();
-    //start critical section
-    if (readers == 0)
-    {
-      m_readers.lock(); //if it is the first reader then signal that there are readers busy
-    }
-    readers++;
-    //end critical section
-    m_no_readers.unlock();
-    //start critical section
-
-    bool capacity_reached = bounded && (buffer.size() == buffer.capacity());
-    cout << "bounded: " << bounded << " buffer size: " << buffer.size() << " capacity: " << buffer.capacity() << "\n";
-    //end critical section
-
-    m_no_readers.lock();
-    //start critical section
-    readers--;
-
-    if (readers == 0)
-    {
-      //end critical section
-
-      m_readers.unlock(); //if it was the last reader then signal that there are no readers busy anymore
-    }
-
-    m_no_readers.unlock();
-
-    return capacity_reached;
   }
 };
 
@@ -281,13 +260,13 @@ void resizeBuffer(int size)
 //for test readability.
 void assertTrue(bool assertion)
 {
-  if (!assertion)
+  if (assertion)
   {
-    cout << "Assertion was false! \n";
+    cout << "Assertion was true! \n";
   }
   else
   {
-    cout << "Assertion was true! \n";
+    cout << "Assertion was false! \n";
   }
 }
 
@@ -317,11 +296,11 @@ void test_4()
 }
 
 void test_5()
-{
-  resizeBuffer(1);
+{ 
   assertTrue(logger.size() == 0);
   assertTrue(buffer.size() == 0);
-
+  resizeBuffer(1);
+ 
   //should be okay
   writeToBuffer(1);
   //third assertion should be false
@@ -358,10 +337,10 @@ void test_6()
 
 int main(int argc, char *argv[])
 {
-  //only run 1 test at a time. 
+  //only run 1 test at a time.
   //running multiple will produce incorrect test results as the buffer and logger is not cleared after each test
-  // test_4();
+  test_4();
   // test_5();
-  test_6();
+  // test_6();
   return 0;
 }
