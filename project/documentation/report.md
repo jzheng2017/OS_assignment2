@@ -64,4 +64,15 @@ There are no deadlocks in our solution. This is guaranteed by the fact that ther
 In our solution there is no starvation. This is guaranteed by that multiple readers can read at the same time *and* workers have priority over readers. The way it works is that a reader can read if there are any readers busy. Because of the fact that there are readers busy, we know that there can not be any workers. However, if a worker has requested to work, then new readers cannot start reading but has to give workers also a chance. This basically guarantees that both sides get to do their respective work.
 
 ## Testing
+In this chapter the testing will be discussed. 
 
+### Test cases
+We will test whether `synchronized_vector` behaves correctly in a multi-threaded environment. 
+
+If the functionality behaves correctly in a multi-threaded environment, we can safely assume that it performs the same in a single-threaded environment and thus will not be explicitly tested.
+
+| # | Description | Expected output | Actual output | Additional comments |
+| --- | --- | --- | --- | --- |
+| 1 | --- | --- | --- | --- |
+
+### Conclusion
