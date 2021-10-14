@@ -256,7 +256,7 @@ void resizeBuffer(int size)
 {
   try
   {
-    buffer.remove(size);
+    buffer.resize(size);
     logger.write("Success: Resizing to size " + to_string(size) + " was successful.");
   }
   catch (const invalid_argument ia)
@@ -274,7 +274,7 @@ void assertTrue(bool assertion)
 {
   if (!assertion)
   {
-    throw new runtime_error("Assertion was false!");
+    cout << "Assertion was false! \n";
   } else {
     cout << "Assertion was true! \n";
   }
@@ -305,6 +305,21 @@ void test_4()
   logger_contains("Error: provided index is out of bounds! Provided index: 0. Actual size: 0");
 }
 
+void test_5(){
+  resizeBuffer(1);
+  assertTrue(logger.size() == 0);
+  assertTrue(buffer.size() == 0);
+ 
+  //should be okay
+  writeToBuffer(1);
+  //third assertion should be false
+  logger_contains("Error: Writing to the buffer was unsuccessful. Cause: the buffer is full!");
+  
+  writeToBuffer(2);
+  //true
+  logger_contains("Error: Writing to the buffer was unsuccessful. Cause: the buffer is full!");
+}
+
 /**
  * TESTS END HERE 
  */
@@ -330,6 +345,7 @@ int main(int argc, char *argv[])
   //   myfile << logger.read(i) << "\n";
 
   // myfile.close();
-  test_4();
+  // test_4();
+  test_5();
   return 0;
 }
