@@ -71,7 +71,8 @@ public:
 
   T read(int index)
   {
-    const int size = this->size();;
+    const int size = this->size();
+    
     if (index < 0 || index >= size)
     {
       throw invalid_argument("Error: provided index is out of bounds! Provided index: " + to_string(index) + ". Actual size: " + to_string(size));
@@ -105,6 +106,9 @@ public:
 
   void resize(int size)
   {
+    if (size < 0){
+      throw new invalid_argument("Error: provided size was not a positive number. Provided size: " + to_string(size));
+    }
     m_worker_queue.lock(); //signal that there is a request for resize
     m_readers.lock();      //wait till all readers are done reading
     bounded = true;
@@ -142,9 +146,10 @@ public:
     return size;
   }
 
-  private:
-  bool capacity_reached(){
-        //treat reading the capacity as a reading request
+private:
+  bool capacity_reached()
+  {
+    //treat reading the capacity as a reading request
     m_worker_queue.lock();
     m_worker_queue.unlock();
 
@@ -176,40 +181,100 @@ synchronized_vector<string> logger;
 synchronized_vector<int> buffer;
 void writeToBuffer(int num)
 {
-    try
-    {
-      buffer.write(num);
-      logger.write("Success: Writing " + to_string(num) + " was successful.");
-    }
-    catch (const runtime_error re)
-    {
-      logger.write(re.what());
-    }
+  try
+  {
+    buffer.write(num);
+    logger.write("Success: Writing " + to_string(num) + " was successful.");
+  }
+  catch (const runtime_error re)
+  {
+    logger.write(re.what());
+  }
 }
+
+int readFromBuffer(int index)
+{
+  try
+  {
+    buffer.read(index);
+    logger.write("Success: Reading at index " + to_string(index) + " was successful.");
+  }
+  catch (const invalid_argument ia)
+  {
+    logger.write(ia.what());
+  }
+}
+
+int removeFromBuffer(int index)
+{
+  try
+  {
+    buffer.remove(index);
+    logger.write("Success: Removing at index " + to_string(index) + " was successful.");
+  }
+  catch (const invalid_argument ia)
+  {
+    logger.write(ia.what());
+  }
+}
+
+void writeFromToBuffer(int start, int end)
+{
+  for (int i = start; i < end; i++)
+  {
+    writeToBuffer(i);
+  }
+}
+
+void resizeBuffer(int size)
+{
+  try
+  {
+    buffer.remove(size);
+    logger.write("Success: Resizing to size " + to_string(size) + " was successful.");
+  }
+  catch (const invalid_argument ia)
+  {
+    logger.write(ia.what());
+  }
+}
+/**
+ * TESTS START HERE 
+ */
+
+// void test_1()
+// {
+//   buffer.write(1);
+//   cout << buffer.size();
+//   buffer = new synchronized_vector<int>();
+// }
+
+/**
+ * TESTS END HERE 
+ */
+
 #include <iostream>
 #include <fstream>
 
-void resizeBuffer()
-{
-    buffer.resize(5);
-}
 int main(int argc, char *argv[])
 {
-  cout << "size: " << buffer.size();
-  thread t3 = thread(resizeBuffer);
-  thread t1 = thread(writeToBuffer, 1);
-  thread t2 = thread(writeToBuffer, 1);
-  t1.join();
-  t2.join();
-  t3.join();
+  // cout << "size: " << buffer.size();
+  // thread t3 = thread(resizeBuffer);
+  // thread t1 = thread(writeToBuffer, 1);
+  // thread t2 = thread(writeToBuffer, 1);
+  // t1.join();
+  // t2.join();
+  // t3.join();
 
-  ofstream myfile;
-  myfile.open("example.txt", std::ios_base::app);
-  // cout << logger.size();
-  cout << buffer.size();
-  for (int i = 0; i < logger.size(); i++)
-    myfile << logger.read(i) << "\n";
+  // ofstream myfile;
+  // myfile.open("example.txt", std::ios_base::app);
+  // // cout << logger.size();
+  // cout << buffer.size();
+  // for (int i = 0; i < logger.size(); i++)
+  //   myfile << logger.read(i) << "\n";
 
-  myfile.close();
+  // myfile.close();
+
+  test_1();
   return 0;
 }
