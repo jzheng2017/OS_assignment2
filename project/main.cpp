@@ -231,7 +231,7 @@ int readFromBuffer(int index)
   }
 }
 
-int removeFromBuffer(int index)
+void removeFromBuffer(int index)
 {
   try
   {
@@ -269,8 +269,40 @@ void resizeBuffer(int size)
  * TESTS START HERE 
  */
 
-void test_1()
+//for test readability.
+void assertTrue(bool assertion)
 {
+  if (!assertion)
+  {
+    throw new runtime_error("Assertion was false!");
+  } else {
+    cout << "Assertion was true! \n";
+  }
+}
+
+void logger_contains(string text)
+{
+  bool contains = false;
+
+  for (int i = 0; i < logger.size(); i++)
+  {
+    if (logger.read(i) == text)
+    {
+      contains = true;
+    }
+  }
+
+  assertTrue(contains);
+}
+
+void test_4()
+{
+  assertTrue(logger.size() == 0);
+  assertTrue(buffer.size() == 0);
+  
+  removeFromBuffer(0);
+
+  logger_contains("Error: provided index is out of bounds! Provided index: 0. Actual size: 0");
 }
 
 /**
@@ -298,7 +330,6 @@ int main(int argc, char *argv[])
   //   myfile << logger.read(i) << "\n";
 
   // myfile.close();
-
-  test_1();
+  test_4();
   return 0;
 }
