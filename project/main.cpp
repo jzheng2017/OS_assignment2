@@ -42,7 +42,7 @@ public:
   }
   void write(T item)
   {
-    if (bounded && this->size() == this->capacity())
+    if (this->capacity_reached())
     {
       throw runtime_error("Error: Writing to the buffer was unsuccessful. Cause: the buffer is full!");
     }
@@ -144,7 +144,7 @@ public:
   }
 
   private:
-  int capacity(){
+  bool capacity_reached(){
         //treat reading the capacity as a reading request
     m_worker_queue.lock();
     m_worker_queue.unlock();
@@ -157,7 +157,7 @@ public:
     readers++;
     m_no_readers.unlock();
 
-    int capacity = buffer.capacity();
+    bool capacity_reached = bounded && buffer.size() == buffer.capacity();
 
     m_no_readers.lock();
     readers--;
@@ -169,7 +169,7 @@ public:
 
     m_no_readers.unlock();
 
-    return capacity;
+    return capacity_reached;
   }
 };
 
@@ -192,16 +192,14 @@ void writeToBuffer(int num)
 
 void resizeBuffer()
 {
-  for (int i = 0; i < 10; i++)
-  {
     buffer.resize(5);
-  }
 }
 int main(int argc, char *argv[])
 {
+  cout << "size: " << buffer.size();
+  thread t3 = thread(resizeBuffer);
   thread t1 = thread(writeToBuffer, 1);
   thread t2 = thread(writeToBuffer, 1);
-  thread t3 = thread(resizeBuffer);
   t1.join();
   t2.join();
   t3.join();
