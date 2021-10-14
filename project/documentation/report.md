@@ -1,6 +1,6 @@
 # Synchronization Report
 
-## Operating System | Assignment 2 | 13-10-2021
+## Operating System | Assignment 2 | 14-10-2021
 
 | Student name | Student number |
 | ------------ | -------------- | 
